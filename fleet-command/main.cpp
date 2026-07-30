@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 class Ship {
@@ -12,25 +13,30 @@ protected:
 public:
   static int totalShips;
   Ship(std::string name, int energy, int firepower) {
-    name = name;
-    energy = energy;
-    firepower = firepower;
+    this->name = name;
+    this->energy = energy;
+    this->firepower = firepower;
   }
 
-  virtual void fireWeapon();
-  virtual void specialManuever();
-  virtual ~Ship();
+  virtual void fireWeapon() = 0;
+  virtual void specialManuever() = 0;
+  virtual ~Ship() = default;
 
   bool operator==(const Ship &other) const { return name == other.name; }
   bool operator<(const Ship &other) const {
     return firepower < other.firepower;
   }
-  void operator<<() const {
-    std::cout << "name: " << name << std::endl;
-    std::cout << "energy: " << energy << std::endl;
-    std::cout << "firepower: " << firepower << std::endl;
+
+  friend std::ostream &operator<<(std::ostream &os, const Ship &ship) {
+    os << "name" << ship.name << std::endl;
+    os << "energy" << ship.energy << std::endl;
+    os << "firepower" << ship.firepower << std::endl;
+    return os;
   }
 };
+// friend function is a function that is not a member of the class but is
+// granted access to its
+//  private and protected members
 
 class Fighter : public Ship {
 public:
@@ -52,7 +58,7 @@ public:
 
   Cruiser(std::string name, int energy, int firepower, int something)
       : Ship(name, energy, firepower) {
-    something = something;
+    this->something = something;
   }
 
   void fireWeapon() override { std::cout << "Cruiser is fring"; }
@@ -66,15 +72,42 @@ public:
 
   Freighter(std::string name, int energy, int firepower, int crew)
       : Ship(name, energy, firepower) {
-    crew = crew;
+    this->crew = crew;
   };
 
   void fireWeapon() override { std::cout << "Freighter is firing"; }
+  void specialManuever() override {
+    std::cout << "no special manuever" << std::endl;
+  };
 };
 int Ship::totalShips = 0;
 
 int main() {
   std::vector<std::unique_ptr<Ship>> fleet;
 
-  fleet.push_back() return 0;
+  auto my_fighter = std::make_unique<Fighter>(
+      "fightera", 10, 10,
+      10); // make_unique creates the object on the heap unique ptr on the stack
+  auto my_cruiser = std::make_unique<Cruiser>("cruisera", 20, 20, 20);
+  auto my_freighter = std::make_unique<Freighter>("freightera", 30, 30, 30);
+
+  // unique ptrs cannot be copied so we use std::move() to move it around
+  //
+  fleet.push_back(std::move(my_fighter));
+  fleet.push_back(std::move(my_cruiser));
+  fleet.push_back(std::move(my_freighter));
+
+  try {
+    for (const auto &f : fleet) {
+      std::cout << *f << std::endl;
+    }
+
+    for (const auto &f : fleet) {
+      f->fireWeapon();
+    }
+
+  } catch (std::runtime_error) {
+    std::cout << "Error firing weapon rip" << std::endl;
+  }
+  return 0;
 };
